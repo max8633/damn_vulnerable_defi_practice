@@ -36,7 +36,7 @@ contract SideEntrance is Test {
         /**
          * EXPLOIT START *
          */
-
+        vm.startPrank(attacker);
         /**
          * EXPLOIT END *
          */
